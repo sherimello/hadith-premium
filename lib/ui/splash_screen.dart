@@ -21,11 +21,12 @@ class SplashScreen extends StatelessWidget {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.menu_book_rounded,
-                  size: 80,
-                  color: Theme.of(context).primaryColor,
-                ),
+                Image.asset("assets/images/icon.png", width: 80, height: 80,),
+                // Icon(
+                //   Icons.menu_book_rounded,
+                //   size: 80,
+                //   color: Theme.of(context).primaryColor,
+                // ),
                 const SizedBox(height: 24),
                 Text(
                   "Hadith Premium",

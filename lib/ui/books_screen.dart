@@ -126,7 +126,7 @@ class _BooksScreenState extends State<BooksScreen> {
           SliverAppBar.medium(
             title: Text(widget.collectionName),
             backgroundColor: theme.scaffoldBackgroundColor,
-            surfaceTintColor: colorScheme.surfaceTint,
+            surfaceTintColor: theme.scaffoldBackgroundColor,
           ),
           _loading
               ? const SliverFillRemaining(

@@ -257,6 +257,31 @@ class DbService {
     );
   }
 
+  Future<List<Map<String, dynamic>>> searchHadiths(
+    String query, {
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    final db = await database;
+
+    // Contextual search joining collections and books
+    return await db.rawQuery(
+      '''
+      SELECT 
+        h.*, 
+        b.name as book_name, 
+        c.name as collection_name,
+        c.id as collection_id
+      FROM hadiths h
+      JOIN books b ON h.book_id = b.id
+      JOIN collections c ON b.collection_id = c.id
+      WHERE h.text_en LIKE ? OR h.text_ar LIKE ?
+      LIMIT ? OFFSET ?
+    ''',
+      ['%$query%', '%$query%', limit, offset],
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getHadiths(int bookId) async {
     final db = await database;
     return await db.query(

@@ -7,6 +7,9 @@ import 'package:text_scroll/text_scroll.dart';
 import '../services/db_service.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/bookmark_controller.dart';
+import '../controllers/social_controller.dart';
+import '../controllers/notification_controller.dart';
+import '../controllers/auth_controller.dart';
 
 class HadithListScreen extends StatefulWidget {
   final int bookId;
@@ -83,7 +86,11 @@ class _HadithListScreenState extends State<HadithListScreen> {
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverAppBar.medium(
+          SliverAppBar(
+            pinned: true,
+            floating: false,
+            snap: false,
+            toolbarHeight: 64,
             surfaceTintColor: Colors.transparent,
             shadowColor: Colors.transparent,
             backgroundColor: theme.scaffoldBackgroundColor,
@@ -122,16 +129,16 @@ class _HadithListScreenState extends State<HadithListScreen> {
 
                     String label = "Hadith $currentNum";
 
-                    if (index > 0) {
-                      final prevItem = _hadiths[index - 1];
-                      final prevNum = isFirstIndexZero
-                          ? prevItem['hadith_number'] + 1
-                          : prevItem['hadith_number'];
-
-                      if (currentNum == prevNum) {
-                        label = "Linked to Hadith $prevNum";
-                      }
-                    }
+                    // if (index > 0) {
+                    //   final prevItem = _hadiths[index - 1];
+                    //   final prevNum = isFirstIndexZero
+                    //       ? prevItem['hadith_number'] + 1
+                    //       : prevItem['hadith_number'];
+                    //
+                    //   if (currentNum == prevNum) {
+                    //     label = "Linked to Hadith $prevNum";
+                    //   }
+                    // }
 
                     return _HadithCard(
                       item: item,
@@ -169,12 +176,14 @@ class _HadithCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return GestureDetector(
-      onLongPress: () => _showBookmarkDialog(context),
+      onLongPress: () => _showContextMenu(context),
       child: Card(
         elevation: 0,
-        color: numberLabel.contains("Linked")
-            ? colorScheme.primaryContainer.withAlpha(50)
-            : colorScheme.surfaceContainerLow,
+        color:
+            // numberLabel.contains("Linked")
+            //     ? colorScheme.primaryContainer.withAlpha(50)
+            //     :
+            colorScheme.surfaceContainerLow,
         margin: const EdgeInsets.only(bottom: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Padding(
@@ -261,6 +270,141 @@ class _HadithCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showContextMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.bookmark_add_outlined),
+            title: const Text("Bookmark"),
+            onTap: () {
+              Navigator.pop(context);
+              _showBookmarkDialog(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.share_outlined),
+            title: const Text("Share with Friends"),
+            onTap: () {
+              Navigator.pop(context);
+              _showShareDialog(context);
+            },
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  void _showShareDialog(BuildContext context) {
+    final SocialController socialController = Get.find<SocialController>();
+    final NotificationController notifyController =
+        Get.find<NotificationController>();
+    final annotationController = TextEditingController();
+    final commentController = TextEditingController();
+    final RxList<String> selectedFriendIds = <String>[].obs;
+
+    socialController.fetchFriends();
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Share Hadith",
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: annotationController,
+                decoration: const InputDecoration(
+                  labelText: "Annotation (Internal note)",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: commentController,
+                decoration: const InputDecoration(
+                  labelText: "Comment (For recipient)",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text("Select Friends:"),
+              const SizedBox(height: 12),
+              Obx(
+                () => Column(
+                  children: socialController.friends.map((f) {
+                    final userId = Get.find<AuthController>().user.value?.id;
+                    final isSender = f['sender_id'] == userId;
+                    final friendName = isSender
+                        ? f['receiver']['username']
+                        : f['sender']['username'];
+                    final friendId = isSender
+                        ? f['receiver_id']
+                        : f['sender_id'];
+
+                    return CheckboxListTile(
+                      title: Text(friendName),
+                      value: selectedFriendIds.contains(friendId),
+                      onChanged: (val) {
+                        if (val == true) {
+                          selectedFriendIds.add(friendId);
+                        } else {
+                          selectedFriendIds.remove(friendId);
+                        }
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: () {
+                  if (selectedFriendIds.isEmpty) {
+                    Get.snackbar("Error", "Select at least one friend");
+                    return;
+                  }
+                  notifyController.shareWithFriends(
+                    receiverIds: selectedFriendIds,
+                    collectionId: collectionId,
+                    bookId: item['book_id'],
+                    bookName: bookName,
+                    hadithNumber: item['hadith_number'],
+                    textEn: item['text_en'] ?? item['text'],
+                    textAr: item['text_ar'],
+                    annotation: annotationController.text,
+                    comment: commentController.text,
+                  );
+                  Get.back();
+                },
+                child: const Text("Share Now"),
+              ),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 
