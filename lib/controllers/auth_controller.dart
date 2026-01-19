@@ -101,9 +101,7 @@
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../ui/auth_screen.dart';
-import '../ui/home_screen.dart'; // Ensure this path is correct
-
-import '../ui/update_password_screen.dart';
+import '../ui/home_screen.dart';
 
 class AuthController extends GetxController {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -111,8 +109,6 @@ class AuthController extends GetxController {
   final Rx<User?> user = Rx<User?>(null);
   final RxMap<String, dynamic> profile = <String, dynamic>{}.obs;
   final RxBool isLoading = false.obs;
-
-  bool _isRecovering = false;
 
   @override
   void onInit() {
@@ -124,10 +120,7 @@ class AuthController extends GetxController {
       final sessionUser = data.session?.user;
       user.value = sessionUser;
 
-      if (data.event == AuthChangeEvent.passwordRecovery) {
-        _isRecovering = true;
-        Get.offAll(() => const UpdatePasswordScreen());
-      } else if (sessionUser != null) {
+      if (sessionUser != null) {
         fetchProfile();
       } else {
         profile.clear();
@@ -137,8 +130,6 @@ class AuthController extends GetxController {
     // WORKER: Automatically navigate based on Auth State
     // This runs every time 'user' changes.
     ever(user, (User? latestUser) {
-      if (_isRecovering) return; // Wait for UpdatePasswordScreen
-
       if (latestUser != null) {
         // If user exists, redirect to Home
         Get.offAll(() => const HomeScreen());
@@ -215,35 +206,18 @@ class AuthController extends GetxController {
   Future<void> sendPasswordReset(String email) async {
     isLoading.value = true;
     try {
-      await _supabase.auth.resetPasswordForEmail(
-        email,
-        redirectTo: 'hadithpremium://reset-password',
-      );
-      Get.snackbar("Success", "Password reset link sent! Check your email.");
+      await _supabase.auth.resetPasswordForEmail(email);
+      Get.snackbar("Success", "Password reset link sent to your email.");
     } catch (e) {
       Get.snackbar("Error", e.toString());
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<bool> updatePassword(String newPassword) async {
-    isLoading.value = true;
-    try {
-      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
-      _isRecovering = false; // Reset flag to allow normal navigation
-      return true;
-    } catch (e) {
-      Get.snackbar("Error", e.toString());
-      return false;
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> signOut() async {
-    _isRecovering = false; // Reset if we were in recovery mode
     await _supabase.auth.signOut();
+    // The 'ever' worker will automatically trigger navigation to AuthScreen
   }
 
   bool get isAuthenticated => user.value != null;

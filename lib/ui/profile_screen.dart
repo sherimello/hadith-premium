@@ -30,9 +30,12 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async{
+            onPressed: () async {
               await authController.signOut();
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (builder) => AuthScreen()));
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (builder) => AuthScreen()),
+              );
             },
           ),
         ],
@@ -49,7 +52,7 @@ class ProfileScreen extends StatelessWidget {
                 (profile['full_name'] ?? 'U')[0].toUpperCase(),
                 style: theme.textTheme.displayMedium?.copyWith(
                   color: Colors.black,
-                  fontWeight: FontWeight.w900
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),

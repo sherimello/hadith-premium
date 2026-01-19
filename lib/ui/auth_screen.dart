@@ -56,7 +56,7 @@ class _AuthScreenState extends State<AuthScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/images/icon.png', width: 80, height: 80,),
+              Image.asset('assets/images/icon.png', width: 80, height: 80),
               const SizedBox(height: 16),
               Text(
                 "Hadith Premium",
@@ -132,23 +132,20 @@ class _AuthScreenState extends State<AuthScreen> {
                               );
                               return;
                             }
-                            _authController.signUp(
+                            success = await _authController.signUp(
                               email: _emailController.text.trim(),
                               password: _passwordController.text.trim(),
                               fullName: _fullNameController.text.trim(),
                             );
                           } else {
-                            // Await the signin result
                             success = await _authController.signIn(
                               _emailController.text.trim(),
                               _passwordController.text.trim(),
                             );
                           }
 
-                          // ONLY navigate if success is true
                           if (success) {
                             Get.offAll(() => const HomeScreen());
-                            // Note: Using Get.offAll is better for Auth to clear the navigation stack
                           }
                         },
                         child: Text(_isSignUp ? "Create Account" : "Sign In"),
