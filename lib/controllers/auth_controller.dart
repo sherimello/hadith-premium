@@ -158,7 +158,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Returns true if OTP sent successfully
+  /// Returns true if successful
   Future<bool> signUp({
     required String email,
     required String password,
@@ -172,12 +172,10 @@ class AuthController extends GetxController {
         data: {'full_name': fullName},
       );
 
-      // If user is created but assuming email confirmation is required,
-      // we return true to show the OTP dialog.
       if (response.user != null) {
         Get.snackbar(
-          "Verification Required",
-          "An OTP has been sent to your email. Please verify.",
+          "Success",
+          "Account created! Please check your email to confirm your account.",
         );
         return true;
       }
@@ -190,54 +188,12 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Verifies the OTP token for either Signup or Recovery
-  Future<bool> verifyOtp({
-    required String email,
-    required String token,
-    required OtpType type,
-  }) async {
-    isLoading.value = true;
-    try {
-      final response = await _supabase.auth.verifyOTP(
-        email: email,
-        token: token,
-        type: type,
-      );
-      if (response.session != null) {
-        Get.snackbar("Success", "Verified successfully!");
-        return true;
-      }
-      return false;
-    } catch (e) {
-      Get.snackbar("Error", "Invalid Token: $e");
-      return false;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  /// Updates password after recovery (User must be logged in via verifyOTP first)
-  Future<bool> updatePassword(String newPassword) async {
-    isLoading.value = true;
-    try {
-      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
-      Get.snackbar("Success", "Password updated successfully!");
-      return true;
-    } catch (e) {
-      Get.snackbar("Error", "Failed to update password: $e");
-      return false;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  // --- EXISTING METHODS ---
-
-  /// Returns true if login successful
+  /// Returns true if successful
   Future<bool> signIn(String email, String password) async {
     isLoading.value = true;
     try {
       await _supabase.auth.signInWithPassword(email: email, password: password);
+      // If no exception is thrown, login was successful
       return true;
     } catch (e) {
       Get.snackbar("Error", "Invalid email or password");
@@ -247,15 +203,13 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<bool> sendPasswordReset(String email) async {
+  Future<void> sendPasswordReset(String email) async {
     isLoading.value = true;
     try {
       await _supabase.auth.resetPasswordForEmail(email);
-      Get.snackbar("Success", "OTP sent to your email.");
-      return true;
+      Get.snackbar("Success", "Password reset link sent to your email.");
     } catch (e) {
       Get.snackbar("Error", e.toString());
-      return false;
     } finally {
       isLoading.value = false;
     }
