@@ -352,7 +352,7 @@ class _HadithCard extends StatelessWidget {
               Obx(
                 () => Column(
                   children: socialController.friends.map((f) {
-                    final userId = Get.find<AuthController>().user.value?.id;
+                    final userId = Get.find<AuthController>().user.value!.id;
                     final isSender = f['sender_id'] == userId;
                     final friendName = isSender
                         ? f['receiver']['username']

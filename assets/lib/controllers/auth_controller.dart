@@ -98,7 +98,9 @@
 //   bool get isAuthenticated => user.value != null;
 // }
 
+import 'dart:convert';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../ui/auth_screen.dart';
 import '../ui/home_screen.dart';
@@ -140,7 +142,22 @@ class AuthController extends GetxController {
     });
 
     if (user.value != null) {
+      _loadCachedProfile();
       fetchProfile();
+    }
+  }
+
+  static const String _profileKey = 'cached_profile';
+
+  Future<void> _loadCachedProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(_profileKey);
+    if (cached != null) {
+      try {
+        profile.assignAll(jsonDecode(cached));
+      } catch (e) {
+        print("Error decoding cached profile: $e");
+      }
     }
   }
 
@@ -153,6 +170,10 @@ class AuthController extends GetxController {
           .eq('id', user.value!.id)
           .single();
       profile.assignAll(data);
+
+      // Cache profile
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_profileKey, jsonEncode(data));
     } catch (e) {
       print("Error fetching profile: $e");
     }
